@@ -2,12 +2,16 @@
 
 module 32_register(rd_data1,rd_data2,source_reg1,source_reg2,dest_reg,write_data,reset,write,clk);
 
+parameter v = 31 ;
+
 input [5:0] source_reg1,source_reg2,dest_reg;
-output reg [v:0] rd_data1,rd_data2;
 input [v:0]write_data ;
 input reset,clk,write;
-reg [v:0] register [0:v];
 
+output reg [v:0] rd_data1,rd_data2;
+
+reg [v:0] register [0:v];
+integer i;
 
 assign rd_data1 = register[source_reg1];
 assign rd_data2 = register[source_reg2];
