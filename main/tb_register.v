@@ -39,7 +39,7 @@ end
 
 initial
 begin
-    $monitor("time=%0d, source_reg1=%0d, source_reg2=%0d, dest_reg=%0d, write_data=%0d, rd_data1=%0d, rd_data2=%0d",$time,source_reg1,source_reg2,dest_reg,write_data,Re.rd_data1,Re.rd_data2);
+    $monitor("time=%0d, source_reg1=%0d, source_reg2=%0d, dest_reg=%0d, write_data=%0d, rd_data1=%0d, rd_data2=%0d",$time,source_reg1,source_reg2,dest_reg,write_data,rd_data1,rd_data2);
     $dumpfile("tb_reg.vcd");
     $dumpvars(0,tb_reg);
     #1000 $finish;

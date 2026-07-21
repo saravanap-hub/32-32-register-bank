@@ -1,0 +1,26 @@
+# Icarus Verilog output
+sim
+a.out
+
+# Waveform files
+*.vcd
+*.fst
+
+# GTKWave session files
+*.gtkw
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

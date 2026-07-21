@@ -8,13 +8,17 @@ input [4:0] source_reg1,source_reg2,dest_reg;
 input [v:0]write_data ;
 input reset,clk,write;
 
-output [v:0] rd_data1,rd_data2;
+output reg [v:0] rd_data1,rd_data2;
 
 reg [v:0] register [0:v];
 integer i;
 
-assign rd_data1 = register[source_reg1];
-assign rd_data2 = register[source_reg2];
+always@(*)
+begin
+     rd_data1 = register[source_reg1];
+     rd_data2 = register[source_reg2];
+end 
+
 
 always@(posedge clk)
 begin
