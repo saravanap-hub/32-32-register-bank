@@ -4,7 +4,7 @@ module 32_register(rd_data1,rd_data2,source_reg1,source_reg2,dest_reg,write_data
 
 parameter v = 31 ;
 
-input [5:0] source_reg1,source_reg2,dest_reg;
+input [4:0] source_reg1,source_reg2,dest_reg;
 input [v:0]write_data ;
 input reset,clk,write;
 
