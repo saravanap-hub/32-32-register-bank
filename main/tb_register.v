@@ -25,16 +25,16 @@ initial
 begin
     for(i=0;i<=31;i=i+1)
     begin
-        #8 dest_reg=i; write_data=i*10;
-         $display("time=%0d, source_reg1=%0d, source_reg2=%0d, dest_reg=%0d, write_data=%0d, reg=%0d, rd_data1=%0d, rd_data2=%0d",$time,source_reg1,source_reg2,dest_reg,write_data,Re.register[i],rd_data1,rd_data2);
+        #10 dest_reg=i; write_data=i*10;
+         $display("time=%0d, source_reg1=%0d, source_reg2=%0d, dest_reg=%0d, write_data=%0d, rd_data1=%0d, rd_data2=%0d",$time,source_reg1,source_reg2,dest_reg,write_data,rd_data1,rd_data2);
     end
 
     #20 write=0;
     for(i=0;i<=30;i=i+1)
     begin
         source_reg1=i; source_reg2=i+1;
-         $display("time=%0d, source_reg1=%0d, source_reg2=%0d, dest_reg=%0d, write_data=%0d, reg=%0d, rd_data1=%0d, rd_data2=%0d",$time,source_reg1,source_reg2,dest_reg,write_data,Re.register[i],rd_data1,rd_data2);
-        #4;
+         $display("time=%0d, source_reg1=%0d, source_reg2=%0d, dest_reg=%0d, write_data=%0d, rd_data1=%0d, rd_data2=%0d",$time,source_reg1,source_reg2,dest_reg,write_data,rd_data1,rd_data2);
+         #1;
     end
 end
 
