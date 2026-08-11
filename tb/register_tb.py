@@ -4,9 +4,9 @@ import pyuvm
 from pyuvm import *
 import random
 
+DUT = None  # set by test_register.py before run_test() is called
 
-# ---------------- Sequence Item ----------------
-# One "transaction" = one cycle's worth of DUT inputs (+ later, monitored outputs)
+
 class RegItem(uvm_sequence_item):
     def __init__(self, name="RegItem"):
         super().__init__(name)
@@ -16,7 +16,6 @@ class RegItem(uvm_sequence_item):
         self.source_reg2 = 0
         self.dest_reg = 0
         self.write_data = 0
-        # filled in by monitor, not driver
         self.rd_data1 = 0
         self.rd_data2 = 0
 
@@ -34,21 +33,17 @@ class RegItem(uvm_sequence_item):
                 f"rd1={self.rd_data1} rd2={self.rd_data2}")
 
 
-# ---------------- Sequence ----------------
 class RegSeq(uvm_sequence):
     async def body(self):
-        # start with a reset transaction
         rst = RegItem("rst")
         rst.reset = 1
         await self.start_item(rst)
         await self.finish_item(rst)
 
-        # directed edge cases first (good interview talking point:
-        # always cover boundaries, not just random)
         edge_cases = [
             dict(dest_reg=0, write_data=0xFFFFFFFF, write=1),
             dict(dest_reg=31, write_data=0xFFFFFFFF, write=1),
-            dict(source_reg1=0, source_reg2=0, write=0),   # read same reg twice
+            dict(source_reg1=0, source_reg2=0, write=0),
         ]
         for case in edge_cases:
             item = RegItem("edge")
@@ -58,7 +53,6 @@ class RegSeq(uvm_sequence):
             await self.start_item(item)
             await self.finish_item(item)
 
-        # random stimulus
         for _ in range(200):
             item = RegItem("rand")
             item.randomize()
@@ -67,13 +61,12 @@ class RegSeq(uvm_sequence):
             await self.finish_item(item)
 
 
-# ---------------- Driver ----------------
 class RegDriver(uvm_driver):
     def build_phase(self):
-        self.dut = ConfigDB().get(self, "", "DUT")
+        self.dut = DUT
 
     async def run_phase(self):
-        await FallingEdge(self.dut.clk)  # drive on negedge, away from monitor's posedge sample
+        await FallingEdge(self.dut.clk)
         while True:
             item = await self.seq_item_port.get_next_item()
             self.dut.reset.value = item.reset
@@ -86,16 +79,15 @@ class RegDriver(uvm_driver):
             self.seq_item_port.item_done()
 
 
-# ---------------- Monitor ----------------
 class RegMonitor(uvm_component):
     def build_phase(self):
-        self.dut = ConfigDB().get(self, "", "DUT")
+        self.dut = DUT
         self.ap = uvm_analysis_port("ap", self)
 
     async def run_phase(self):
         while True:
             await RisingEdge(self.dut.clk)
-            await Timer(1, units="ns")  # let combinational logic settle post-edge
+            await Timer(1, units="ns")
             item = RegItem("mon")
             item.reset = int(self.dut.reset.value)
             item.write = int(self.dut.write.value)
@@ -108,12 +100,11 @@ class RegMonitor(uvm_component):
             self.ap.write(item)
 
 
-# ---------------- Scoreboard (gold model lives here) ----------------
 class RegScoreboard(uvm_component):
     def build_phase(self):
         self.fifo = uvm_tlm_analysis_fifo("fifo", self)
         self.port = uvm_get_port("port", self)
-        self.model = [0] * 32       # <-- the Python gold model
+        self.model = [0] * 32
         self.passed = 0
         self.failed = 0
 
@@ -124,10 +115,6 @@ class RegScoreboard(uvm_component):
         while self.port.can_get():
             _, item = self.port.try_get()
 
-            # IMPORTANT nuance: the write on this cycle already lands in the
-            # register array combinationally visible to the read in the SAME
-            # cycle (non-blocking assign + continuous assign resolve together).
-            # So update the model FIRST, then compute expected reads.
             if item.reset:
                 self.model = [0] * 32
             elif item.write:
@@ -146,10 +133,9 @@ class RegScoreboard(uvm_component):
 
     def report_phase(self):
         self.logger.info(f"Scoreboard: passed={self.passed} failed={self.failed}")
-        assert self.failed == 0, f"{self.failed} mismatches found — see log above"
+        assert self.failed == 0, f"{self.failed} mismatches found"
 
 
-# ---------------- Coverage ----------------
 class RegCoverage(uvm_component):
     def build_phase(self):
         self.fifo = uvm_tlm_analysis_fifo("cov_fifo", self)
@@ -185,7 +171,6 @@ class RegCoverage(uvm_component):
         self.logger.info(f"COVERAGE: reset hit={self.saw_reset}")
 
 
-# ---------------- Agent ----------------
 class RegAgent(uvm_agent):
     def build_phase(self):
         self.seqr = uvm_sequencer("seqr", self)
@@ -196,7 +181,6 @@ class RegAgent(uvm_agent):
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)
 
 
-# ---------------- Env ----------------
 class RegEnv(uvm_env):
     def build_phase(self):
         self.agent = RegAgent("agent", self)
@@ -208,7 +192,6 @@ class RegEnv(uvm_env):
         self.agent.monitor.ap.connect(self.coverage.fifo.analysis_export)
 
 
-# ---------------- Test ----------------
 class RegTest(uvm_test):
     def build_phase(self):
         self.env = RegEnv("env", self)
@@ -218,8 +201,3 @@ class RegTest(uvm_test):
         seq = RegSeq("seq")
         await seq.start(self.env.agent.seqr)
         self.drop_objection()
-
-@cocotb.test()
-async def register_test(dut):
-    ConfigDB().set(None, "*", "DUT", dut)
-    await uvm_root().run_test("RegTest")
